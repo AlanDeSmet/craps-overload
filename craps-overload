@@ -1,0 +1,74 @@
+#! /usr/bin/python
+
+from fractions import Fraction as fraction
+
+# Ironically, the fractions module provides 
+# these exclusively as overloaded operators
+def add_fraction(a,b): return a+b
+def subtract_fraction(a,b): return a-b
+def multiply_fraction(a,b): return a*b
+def divide_fraction(a,b): return a/b
+
+class probabilities:
+	def __init__(self, dict_in):
+		self.probs = dict_in
+
+	def __mul__(self, other):
+		return multiply_probabilities(self,other)
+
+	def probability(self, i):
+		return self.probs[i]
+
+	def __getitem__(self, key):
+		return self.probs[key]
+
+def multiply_probabilities(a,b):
+	d = {}
+	for i in a.probs:
+		for j in b.probs:
+			r = i+j
+			p = a.probs[i] * b.probs[j]
+			if r not in d:
+				d[r] = fraction(0,1)
+			d[r] += p
+	return probabilities(d)
+
+def single_die_probability():
+	d = {}
+	sides = 6
+	for r in range(1,sides+1):
+		d[r] = fraction(1, sides)
+	return probabilities(d)
+
+def craps_shooter_win_probability_overload():
+	one_die = single_die_probability()
+	two_dice = one_die * one_die
+
+	natural = two_dice[7] + two_dice[11]
+
+	seven_out = two_dice[7]
+
+	points = (4,5,6,8,9,10)
+	win_on_point = 0
+	for point in points:
+		win_on_point += two_dice[point] * two_dice[point]/(two_dice[point] + seven_out)
+
+	return natural + win_on_point
+
+def craps_shooter_win_probability_explicit():
+	one_die = single_die_probability()
+	two_dice = multiply_probabilities(one_die, one_die)
+
+	natural = add_fraction(two_dice.probability(7), two_dice.probability(11))
+
+	seven_out = two_dice.probability(7)
+
+	points = (4,5,6,8,9,10)
+	win_on_point = 0
+	for point in points:
+		win_on_point = add_fraction(win_on_point, divide_fraction(multiply_fraction(two_dice.probability(point),two_dice.probability(point)), (add_fraction(two_dice.probability(point), seven_out))))
+
+	return add_fraction(natural, win_on_point)
+
+
+print craps_shooter_win_probability_overload(),"=", craps_shooter_win_probability_explicit()
